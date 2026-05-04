@@ -7,11 +7,11 @@ Featuring drag-and-drop file support and an intelligent hardware scanner that au
 ## Features
 
 * **Hardware Auto-Profiling:** A built-in scanner analyses your CPU, RAM (speed/slots), and GPU VRAM to automatically recommend the optimal `faster-whisper` AI model for your specific machine.
-* **Universal Media Support:** Drag-and-drop your favorite Video (MP4, MKV, AVI, MOV) or Audio (MP3, WAV, FLAC) files directly into the UI.
+* **Universal Media & Batch Processing:** Drag-and-drop a single file or a massive batch of Video (MP4, MKV, AVI, MOV) or Audio (MP3, WAV, FLAC) files directly into the UI for automated queue processing.
 * **Expanded Language Support:** Transcribe or translate 20 major global languages—including Arabic, Chinese, Japanese, Spanish, and Urdu—or just use Auto-Detect.
-* **Multimodal Output:** Choose to transcribe the original audio into text, or translate it directly into English subtitles.
-* **Sleek & Interactive UI:** Dark mode interface featuring drag-and-drop targets, double-click file browsing, live progress bars, and safe process cancellation.
-* **Smart Auto-Namer:** Automatically generates and saves the `.srt` file in the same directory as your source media.
+* **Flexible Export Options:** Export your text as standard subtitles (`.srt`), web subtitles (`.vtt`), raw transcripts (`.txt`), or **permanently burn (hardcode) the subtitles directly into a new video file!**
+* **Sleek & Interactive UI:** Light and Dark mode interface featuring drag-and-drop targets, double-click file browsing, live batch progress bars, and safe process cancellation.
+* **Smart Auto-Namer:** Automatically generates and saves your output files in the exact same directory as your source media.
 
 ## Requirements
 
@@ -19,7 +19,7 @@ Featuring drag-and-drop file support and an intelligent hardware scanner that au
 * **GPU:** NVIDIA GPU (8GB+ VRAM highly recommended for `large-v3` models).
 * **Toolkit:** CUDA 12 Toolkit installed on your machine.
 * **Python:** Python 3.12 or higher.
-* **FFmpeg:** Must be installed and added to your Windows System PATH (Required for audio extraction).
+* **FFmpeg:** Must be installed and added to your System PATH (Required for audio extraction & video hardcoding).
 
 ## Setup & Installation
 
