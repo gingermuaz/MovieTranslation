@@ -22,19 +22,20 @@ All processing runs locally on your machine—no internet connection or API keys
    ```bash
    git clone https://github.com/gingermuaz/MovieTranslation.git
    cd MovieTranslation
-2. **Create a virtual environment:**
 
-Bash
+2. **Create a virtual environment:**
+   ```bash
 python -m venv .venv
 .\.venv\Scripts\activate
-Install dependencies:
 
-Bash
+3. **Install dependencies:**
+   ```bash
 python -m pip install faster-whisper ctranslate2 customtkinter nvidia-cublas-cu12 nvidia-cudnn-cu12
-Run the Application:
 
-Bash
+4. **Run the Application:**
+   ```bash
 python GUI.py
+
 Usage
 Click Browse to select your .mp4 video file (the save location automatically appears next to it).
 
