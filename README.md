@@ -22,7 +22,7 @@ All processing runs locally on your machine—no internet connection or API keys
    ```bash
    git clone https://github.com/gingermuaz/MovieTranslation.git
    cd MovieTranslation
-Create a virtual environment:
+2. **Create a virtual environment:**
 
 Bash
 python -m venv .venv
