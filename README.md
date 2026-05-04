@@ -20,7 +20,7 @@ All processing runs locally on your machine—no internet connection or API keys
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/gingermuaz/MovieTranslation.git](https://github.com/gingermuaz/MovieTranslation.git)
+   git clone https://github.com/gingermuaz/MovieTranslation.git
    cd MovieTranslation
 Create a virtual environment:
 
