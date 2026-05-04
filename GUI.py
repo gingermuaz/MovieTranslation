@@ -1,8 +1,10 @@
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
+from tkinterdnd2 import TkinterDnD, DND_FILES
 import threading
 import os
 import main
+import hardware  # --- NEW IMPORT ---
 
 # --- UI Theme Setup ---
 ctk.set_appearance_mode("dark")
@@ -10,21 +12,37 @@ ctk.set_default_color_theme("blue")
 
 cancel_event = threading.Event()
 
+def set_title_bar_dark(root):
+    """Tells Windows to render the title bar in dark mode."""
+    import ctypes
+
+    try:
+        # Ask Windows to update the title bar for DWM
+        hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+
+        # Enable Dark Mode for the window handle
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ctypes.byref(ctypes.c_int(1)),
+            ctypes.sizeof(ctypes.c_int(4))
+        )
+    except:
+        pass  # Silently continues if the platform doesn't support the Windows API
 
 def browse_video():
+    from tkinter import filedialog
     filepath = filedialog.askopenfilename(
         title="Select Video File",
         filetypes=[("MP4 Videos", "*.mp4"), ("All Files", "*.*")]
     )
     if filepath:
-        video_path_var.set(filepath)
-        directory = os.path.dirname(filepath)
-        base_name = os.path.splitext(os.path.basename(filepath))[0]
-        auto_save_path = os.path.join(directory, f"{base_name}_subtitle.srt")
-        save_path_var.set(auto_save_path)
+        process_selected_file(filepath)
 
 
 def browse_save():
+    from tkinter import filedialog
     filepath = filedialog.asksaveasfilename(
         title="Save Subtitle File As",
         defaultextension=".srt",
@@ -32,6 +50,25 @@ def browse_save():
     )
     if filepath:
         save_path_var.set(filepath)
+
+
+def process_selected_file(filepath):
+    """Handles the path generation for both browsing and drag-and-drop."""
+    video_path_var.set(filepath)
+    directory = os.path.dirname(filepath)
+    base_name = os.path.splitext(os.path.basename(filepath))[0]
+    auto_save_path = os.path.join(directory, f"{base_name}_subtitle.srt")
+    save_path_var.set(auto_save_path)
+
+
+def drop_event(event):
+    """Triggers when a file is dragged and dropped onto the app."""
+    # tkinterdnd2 returns string paths with curly braces on Windows sometimes; we strip them
+    filepath = event.data.strip('{}')
+    if filepath.lower().endswith('.mp4'):
+        process_selected_file(filepath)
+    else:
+        messagebox.showwarning("Invalid File", "Please drop an MP4 video file.")
 
 
 def update_gui_progress(current, total, status_text):
@@ -92,10 +129,17 @@ def start_process():
                      daemon=True).start()
 
 
-# --- GUI Window Setup ---
-root = ctk.CTk()
+# --- GUI Window Setup (Using TkinterDnD instead of basic CTk) ---
+root = TkinterDnD.Tk()
 root.title("Movie Translator Studio")
-root.geometry("780x480")
+root.geometry("780x620")  # --- INCREASED HEIGHT FOR TEXT BOX ---
+
+# Force Windows to use dark title bar
+root.attributes('-alpha', 1.0)  # Forces window refresh
+try:
+    root.tk_setPalette(background='#2b2b2b', foreground='#ffffff')
+except:
+    pass
 root.resizable(False, False)
 
 video_path_var = ctk.StringVar()
@@ -105,10 +149,13 @@ model_var = ctk.StringVar(value="large-v3 (Slowest / Best Accuracy)")
 task_var = ctk.StringVar(value="Translate to English")
 status_var = ctk.StringVar(value="Ready")
 
+# Setup drag and drop for the whole window area
+root.drop_target_register(DND_FILES)
+root.dnd_bind('<<Drop>>', drop_event)
+
 frame = ctk.CTkFrame(root)
 frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-# Distribute weight to column 0 and 3 to act as side springs
 frame.grid_columnconfigure(0, weight=1)
 frame.grid_columnconfigure(3, weight=1)
 
@@ -122,9 +169,9 @@ ctk.CTkLabel(frame, text="Save .srt To:", width=100).grid(row=1, column=0, padx=
 ctk.CTkEntry(frame, textvariable=save_path_var, width=400).grid(row=1, column=1, pady=10)
 ctk.CTkButton(frame, text="Browse", width=80, command=browse_save).grid(row=1, column=2, padx=10, pady=10)
 
-# 3. Language & Model Options (Centered Frame)
+# 3. Language & Model Options
 options_frame = ctk.CTkFrame(frame, fg_color="transparent")
-options_frame.grid(row=2, column=0, columnspan=3, pady=10)
+options_frame.grid(row=2, column=0, columnspan=4, pady=10)
 
 ctk.CTkLabel(options_frame, text="Source Language:").pack(side="left", padx=(0, 5))
 languages = [
@@ -144,33 +191,52 @@ models = [
 ]
 ctk.CTkOptionMenu(options_frame, variable=model_var, values=models, width=240).pack(side="left")
 
-# 4. Action / Task Toggle Row (Centered Frame)
+# 4. Action / Task Toggle Row
 action_frame = ctk.CTkFrame(frame, fg_color="transparent")
-action_frame.grid(row=3, column=0, columnspan=3, pady=10)
+action_frame.grid(row=3, column=0, columnspan=4, pady=10)
 
 ctk.CTkLabel(action_frame, text="Action:").pack(side="left", padx=10)
 ctk.CTkSegmentedButton(action_frame, variable=task_var, values=["Translate to English", "Keep Original Language"],
                        width=320).pack(side="left", padx=10)
 
-# 5. Status text & Progress Bar (Centered Frame)
+# 5. Status text & Progress Bar
 status_frame = ctk.CTkFrame(frame, fg_color="transparent")
-status_frame.grid(row=4, column=0, columnspan=3, pady=(15, 0))
+status_frame.grid(row=4, column=0, columnspan=4, pady=(15, 0))
 
 ctk.CTkLabel(status_frame, textvariable=status_var, text_color="gray").pack(pady=(0, 5))
 progress_bar = ctk.CTkProgressBar(status_frame, width=460)
 progress_bar.set(0)
 progress_bar.pack()
 
-# 6. Action Buttons (Centered Frame)
+# 6. Action Buttons
 button_frame = ctk.CTkFrame(frame, fg_color="transparent")
-button_frame.grid(row=5, column=0, columnspan=3, pady=(25, 20))
-
+button_frame.grid(row=5, column=0, columnspan=4, pady=(20, 10))
 start_button = ctk.CTkButton(button_frame, text="Start Processing", command=start_process, fg_color="#28a745",
                              hover_color="#218838")
 start_button.pack(side="left", padx=15)
-
 cancel_button = ctk.CTkButton(button_frame, text="Cancel", command=cancel_process, fg_color="#dc3545",
                               hover_color="#c82333", state="disabled")
 cancel_button.pack(side="left", padx=15)
 
+# 7. --- NEW HARDWARE INFO BOX ---
+hw_frame = ctk.CTkFrame(frame, fg_color="transparent")
+hw_frame.grid(row=6, column=0, columnspan=4, pady=(5, 10))
+
+# We make the text slightly green for a cool "terminal" aesthetic
+hw_textbox = ctk.CTkTextbox(hw_frame, width=600, height=140, text_color="#28a745", fg_color="#1e1e1e")
+hw_textbox.pack()
+
+# Run the hardware scan and inject the text!
+try:
+    report, recommended_model = hardware.scan_system()
+    hw_textbox.insert("0.0", report)
+    model_var.set(recommended_model)  # Automatically update the UI dropdown to match!
+except Exception as e:
+    hw_textbox.insert("0.0", f"Could not perform hardware scan.\nError: {e}")
+
+hw_textbox.configure(state="disabled") # Locks the text box so the user can't accidentally type in it
+# --------------------------------
+
+# Apply dark title bar
+set_title_bar_dark(root)
 root.mainloop()
