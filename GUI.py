@@ -11,7 +11,7 @@ import hardware
 
 # --- Configuration & Constants ---
 LANGUAGES = [
-    "Arabic (ar)",
+    "Arabic / Yemeni (ar)",
     "Bengali (bn)",
     "Chinese (zh)",
     "Dutch (nl)",
@@ -30,6 +30,7 @@ LANGUAGES = [
     "Spanish (es)",
     "Turkish (tr)",
     "Urdu / Pakistani (ur)",
+    "Vietnamese (vi)",
     "Auto-Detect (auto)"
 ]
 
@@ -40,6 +41,12 @@ MODELS = [
     "medium (Slower / High Accuracy)",
     "large-v3 (Slowest / Best Accuracy)"
 ]
+
+# Supported media extensions for drag-and-drop and file browsing
+SUPPORTED_MEDIA = (
+    '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm',  # Video formats
+    '.mp3', '.wav', '.aac', '.m4a', '.flac', '.ogg', '.wma'  # Audio formats
+)
 
 # --- UI Theme Setup ---
 ctk.set_appearance_mode("dark")
@@ -66,17 +73,25 @@ def set_title_bar_dark(window):
         pass  # Silently continue if the platform doesn't support the Windows API
 
 
-def browse_video():
-    """Opens a file dialog to select the source video."""
+def browse_video(event=None):
+    """Opens a file dialog to select the source video or audio."""
+    # We create a space-separated string of all extensions for the dialog filter
+    all_exts = " ".join([f"*{ext}" for ext in SUPPORTED_MEDIA])
+
     filepath = filedialog.askopenfilename(
-        title="Select Video File",
-        filetypes=[("MP4 Videos", "*.mp4"), ("All Files", "*.*")]
+        title="Select Media File",
+        filetypes=[
+            ("Media Files", all_exts),
+            ("Video Files", "*.mp4 *.mkv *.avi *.mov *.wmv *.flv *.webm"),
+            ("Audio Files", "*.mp3 *.wav *.aac *.m4a *.flac *.ogg *.wma"),
+            ("All Files", "*.*")
+        ]
     )
     if filepath:
         process_selected_file(filepath)
 
 
-def browse_save():
+def browse_save(event=None):
     """Opens a file dialog to select where to save the output .srt file."""
     filepath = filedialog.asksaveasfilename(
         title="Save Subtitle File As",
@@ -100,10 +115,12 @@ def drop_event(event):
     """Triggers when a file is dragged and dropped onto the app."""
     # tkinterdnd2 returns string paths with curly braces on Windows sometimes; strip them
     filepath = event.data.strip('{}')
-    if filepath.lower().endswith('.mp4'):
+
+    # Check if the dropped file ends with any of our supported extensions
+    if filepath.lower().endswith(SUPPORTED_MEDIA):
         process_selected_file(filepath)
     else:
-        messagebox.showwarning("Invalid File", "Please drop an MP4 video file.")
+        messagebox.showwarning("Invalid File", "Please drop a supported video or audio file.")
 
 
 def update_gui_progress(current, total, status_text):
@@ -153,7 +170,7 @@ def start_process():
     task = task_var.get()
 
     if not video or not save:
-        messagebox.showwarning("Missing Information", "Please select both a video file and a save location.")
+        messagebox.showwarning("Missing Information", "Please select both a media file and a save location.")
         return
 
     # Parse dropdown selections for the backend
@@ -196,7 +213,8 @@ if __name__ == "__main__":
     # 3. Variable Initialization
     video_path_var = ctk.StringVar()
     save_path_var = ctk.StringVar()
-    lang_var = ctk.StringVar(value=LANGUAGES[0])
+    lang_var = ctk.StringVar(
+        value=LANGUAGES[-2])  # Defaults to Urdu since it moved down the list! Set to [-1] for Auto.
     model_var = ctk.StringVar(value=MODELS[-1])
     task_var = ctk.StringVar(value="Translate to English")
     status_var = ctk.StringVar(value="Ready")
@@ -213,14 +231,22 @@ if __name__ == "__main__":
 
     # --- UI Elements ---
 
-    # Row 0: Video Selection
-    ctk.CTkLabel(frame, text="Video File:", width=100).grid(row=0, column=0, padx=10, pady=(20, 10), sticky="e")
-    ctk.CTkEntry(frame, textvariable=video_path_var, width=400).grid(row=0, column=1, pady=(20, 10))
+    # Row 0: Media Selection
+    ctk.CTkLabel(frame, text="Media File:", width=100).grid(row=0, column=0, padx=10, pady=(20, 10), sticky="e")
+
+    video_entry = ctk.CTkEntry(frame, textvariable=video_path_var, width=400)
+    video_entry.grid(row=0, column=1, pady=(20, 10))
+    video_entry.bind("<Double-1>", browse_video)
+
     ctk.CTkButton(frame, text="Browse", width=80, command=browse_video).grid(row=0, column=2, padx=10, pady=(20, 10))
 
     # Row 1: Save Location
     ctk.CTkLabel(frame, text="Save .srt To:", width=100).grid(row=1, column=0, padx=10, pady=10, sticky="e")
-    ctk.CTkEntry(frame, textvariable=save_path_var, width=400).grid(row=1, column=1, pady=10)
+
+    save_entry = ctk.CTkEntry(frame, textvariable=save_path_var, width=400)
+    save_entry.grid(row=1, column=1, pady=10)
+    save_entry.bind("<Double-1>", browse_save)
+
     ctk.CTkButton(frame, text="Browse", width=80, command=browse_save).grid(row=1, column=2, padx=10, pady=10)
 
     # Row 2: Language & Model Options
