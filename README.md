@@ -15,7 +15,7 @@ Featuring drag-and-drop file support and an intelligent hardware scanner that au
 
 ## Requirements
 
-* **OS:** Windows 10 or Windows 11 (Required for the hardware auto-profiler).
+* **OS:** Windows 10/11 or Linux.
 * **GPU:** NVIDIA GPU (8GB+ VRAM highly recommended for `large-v3` models).
 * **Toolkit:** CUDA 12 Toolkit installed on your machine.
 * **Python:** Python 3.12 or higher.
