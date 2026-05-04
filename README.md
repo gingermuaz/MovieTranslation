@@ -14,9 +14,12 @@ Featuring drag-and-drop file support and an intelligent hardware scanner that au
 * **Smart Auto-Namer:** Automatically generates and saves the `.srt` file in the same directory as your source media.
 
 ## Requirements
-- **NVIDIA GPU** (8GB+ VRAM recommended for `large-v3` models)
-- **CUDA 12 Toolkit** installed on your Windows machine.
-- **Python 3.12** or higher.
+
+* **OS:** Windows 10 or Windows 11 (Required for the hardware auto-profiler).
+* **GPU:** NVIDIA GPU (8GB+ VRAM highly recommended for `large-v3` models).
+* **Toolkit:** CUDA 12 Toolkit installed on your machine.
+* **Python:** Python 3.12 or higher.
+* **FFmpeg:** Must be installed and added to your Windows System PATH (Required for audio extraction).
 
 ## Setup & Installation
 
