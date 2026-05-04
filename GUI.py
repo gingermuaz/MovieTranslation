@@ -131,7 +131,7 @@ def start_process():
 
 # --- GUI Window Setup (Using TkinterDnD instead of basic CTk) ---
 root = TkinterDnD.Tk()
-root.title("Movie Translator Studio")
+root.title("SubtitleSmith")
 root.geometry("780x620")  # --- INCREASED HEIGHT FOR TEXT BOX ---
 
 # Force Windows to use dark title bar
