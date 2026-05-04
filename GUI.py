@@ -56,21 +56,23 @@ cancel_event = threading.Event()
 
 
 def set_title_bar_dark(window):
-    """Tells Windows to render the title bar in dark mode."""
-    try:
-        # Ask Windows to update the title bar for DWM
-        hwnd = ctypes.windll.user32.GetParent(window.winfo_id())
-        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+    """Tells Windows to render the title bar in dark mode. Safely ignores Linux/Mac."""
+    import platform
+    if platform.system() == "Windows":
+        try:
+            # Ask Windows to update the title bar for DWM
+            hwnd = ctypes.windll.user32.GetParent(window.winfo_id())
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 
-        # Enable Dark Mode for the window handle
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_USE_IMMERSIVE_DARK_MODE,
-            ctypes.byref(ctypes.c_int(1)),
-            ctypes.sizeof(ctypes.c_int(4))
-        )
-    except Exception:
-        pass  # Silently continue if the platform doesn't support the Windows API
+            # Enable Dark Mode for the window handle
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                ctypes.byref(ctypes.c_int(1)),
+                ctypes.sizeof(ctypes.c_int(4))
+            )
+        except Exception:
+            pass  # Silently continue if the Windows API fails
 
 
 def browse_video(event=None):
