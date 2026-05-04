@@ -1,4 +1,4 @@
-# Movie Translator Studio
+# SubtitleSmith
 
 A local, AI-powered desktop application that extracts audio from video files and converts it to synchronised `.srt` subtitles using the NVIDIA CUDA engine and `faster-whisper`. 
 
@@ -20,7 +20,7 @@ All processing runs locally on your machine—no internet connection or API keys
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/gingermuaz/MovieTranslation.git
+   git clone https://github.com/gingermuaz/SubtitleSmith.git
    cd MovieTranslation
 
 2. **Create a virtual environment:**
