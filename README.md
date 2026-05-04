@@ -5,11 +5,13 @@ SubtitleSmith is a local, AI-powered desktop application that extracts audio fro
 Featuring drag-and-drop file support and an intelligent hardware scanner that automatically recommends the best AI model for your system's VRAM. All processing runs locally on your machine—no internet connection or API keys required!
 
 ## Features
-- **Hardware Accelerated:** Processes video files using your NVIDIA GPU (RTX 3070 or similar).
-- **Multiple Source Languages:** Supports Bengali, Hindi, Spanish, French, Japanese, Russian, German, Polish, and Hungarian, plus Auto-Detection.
-- **Multimodal Output:** Transcribe original audio or translate directly into English subtitles.
-- **Live UI Progress:** Sleek Dark Mode interface with live translation progress bars and process cancellation.
-- **Auto-Namer:** Automatically saves the `.srt` in the same directory as the source video.
+
+* **Hardware Auto-Profiling:** A built-in scanner analyses your CPU, RAM (speed/slots), and GPU VRAM to automatically recommend the optimal `faster-whisper` AI model for your specific machine.
+* **Universal Media Support:** Drag-and-drop your favorite Video (MP4, MKV, AVI, MOV) or Audio (MP3, WAV, FLAC) files directly into the UI.
+* **Expanded Language Support:** Transcribe or translate 20 major global languages—including Arabic, Chinese, Japanese, Spanish, and Urdu—or just use Auto-Detect.
+* **Multimodal Output:** Choose to transcribe the original audio into text, or translate it directly into English subtitles.
+* **Sleek & Interactive UI:** Dark mode interface featuring drag-and-drop targets, double-click file browsing, live progress bars, and safe process cancellation.
+* **Smart Auto-Namer:** Automatically generates and saves the `.srt` file in the same directory as your source media.
 
 ## Requirements
 - **NVIDIA GPU** (8GB+ VRAM recommended for `large-v3` models)
