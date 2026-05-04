@@ -38,6 +38,10 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 cancel_event = threading.Event()
 
+# Global variables for batch processing
+selected_files = []
+batch_prefix = ""
+
 
 def set_title_bar_dark(window):
     if platform.system() == "Windows":
@@ -49,54 +53,88 @@ def set_title_bar_dark(window):
             pass
 
 
+def toggle_theme():
+    """Toggles the entire UI between Light and Dark mode."""
+    mode = "light" if theme_var.get() else "dark"
+    ctk.set_appearance_mode(mode)
+
+
 def browse_video(event=None):
     all_exts = " ".join([f"*{ext}" for ext in SUPPORTED_MEDIA])
-    filepath = filedialog.askopenfilename(
-        title="Select Media File",
+    # Changed to askopenfilenames (plural) to allow selecting multiple files
+    filepaths = filedialog.askopenfilenames(
+        title="Select Media Files",
         filetypes=[("Media Files", all_exts), ("Video Files", "*.mp4 *.mkv *.avi *.mov"),
                    ("Audio Files", "*.mp3 *.wav *.aac"), ("All Files", "*.*")]
     )
-    if filepath: process_selected_file(filepath)
+    if filepaths:
+        process_selected_files(filepaths)
 
 
 def browse_save(event=None):
-    ext = format_var.get()
-    filepath = filedialog.asksaveasfilename(
-        title="Save File As",
-        defaultextension=ext,
-        filetypes=[(f"{ext.upper()} File", f"*{ext}"), ("All Files", "*.*")]
-    )
-    if filepath: save_path_var.set(filepath)
+    if len(selected_files) > 1:
+        # In batch mode, ask for a destination folder instead of a single file
+        directory = filedialog.askdirectory(title="Select Batch Output Folder")
+        if directory:
+            save_path_var.set(directory)
+    else:
+        ext = format_var.get()
+        filepath = filedialog.asksaveasfilename(
+            title="Save File As",
+            defaultextension=ext,
+            filetypes=[(f"{ext.upper()} File", f"*{ext}"), ("All Files", "*.*")]
+        )
+        if filepath: save_path_var.set(filepath)
 
 
-def process_selected_file(filepath):
-    video_path_var.set(filepath)
-    directory = os.path.dirname(filepath)
-    base_name = os.path.splitext(os.path.basename(filepath))[0]
+def process_selected_files(filepaths):
+    """Handles logic for single and batch file selections."""
+    global selected_files
+    selected_files = list(filepaths)
     ext = format_var.get()
-    save_path_var.set(os.path.join(directory, f"{base_name}_subtitle{ext}"))
+
+    if len(selected_files) == 1:
+        # Single File Mode
+        filepath = selected_files[0]
+        video_path_var.set(filepath)
+        directory = os.path.dirname(filepath)
+        base_name = os.path.splitext(os.path.basename(filepath))[0]
+        save_path_var.set(os.path.join(directory, f"{base_name}_subtitle{ext}"))
+    elif len(selected_files) > 1:
+        # Batch Mode
+        video_path_var.set(f"{len(selected_files)} media files selected (Batch Queue)")
+        save_path_var.set("<Auto-save to original directories>")
 
 
 def update_extension_in_path(*args):
     """Updates the save path extension instantly when the user changes the dropdown."""
     current_path = save_path_var.get()
-    if current_path:
-        base, _ = os.path.splitext(current_path)
-        save_path_var.set(f"{base}{format_var.get()}")
+    if current_path and not current_path.startswith("<"):
+        if len(selected_files) > 1 and os.path.isdir(current_path):
+            pass  # It's a directory (batch mode), don't append extension
+        else:
+            base, _ = os.path.splitext(current_path)
+            save_path_var.set(f"{base}{format_var.get()}")
 
 
 def drop_event(event):
-    filepath = event.data.strip('{}')
-    if filepath.lower().endswith(SUPPORTED_MEDIA):
-        process_selected_file(filepath)
+    # Safely parse multiple dropped files using Tkinter's native splitlist
+    files = root.tk.splitlist(event.data)
+    valid_files = [f for f in files if f.lower().endswith(SUPPORTED_MEDIA)]
+
+    if valid_files:
+        process_selected_files(valid_files)
     else:
-        messagebox.showwarning("Invalid File", "Please drop a supported video or audio file.")
+        messagebox.showwarning("Invalid File", "Please drop supported video or audio files.")
 
 
 def update_gui_progress(current, total, status_text):
+    """Updates the progress bar, prepending the batch file counter if active."""
     percent = current / total if total > 0 else 0
     root.after(0, lambda: progress_bar.set(percent))
-    root.after(0, lambda: status_var.set(status_text))
+
+    display_text = f"{batch_prefix}{status_text}" if batch_prefix else status_text
+    root.after(0, lambda: status_var.set(display_text))
 
 
 def check_cancel(): return cancel_event.is_set()
@@ -108,26 +146,54 @@ def cancel_process():
     cancel_button.configure(state="disabled")
 
 
-def run_translation_thread(video, lang_code, save, model_sz, task_type, compute, vad, fmt):
+def run_translation_thread(videos, lang_code, save_val, model_sz, task_type, compute, vad, fmt):
+    global batch_prefix
+    total_files = len(videos)
+
     try:
-        main.translate_movie(
-            video_path=video, source_language=lang_code, output_file=save,
-            model_size=model_sz, task=task_type, compute_device=compute,
-            vad_filter=vad, output_format=fmt,
-            progress_callback=update_gui_progress, cancel_check=check_cancel
-        )
+        for i, video in enumerate(videos):
+            if check_cancel():
+                break
+
+            # Setup pathing and status text based on Batch vs Single mode
+            if total_files > 1:
+                batch_prefix = f"[{i + 1}/{total_files}] "
+                base_name = os.path.splitext(os.path.basename(video))[0]
+
+                if save_val == "<Auto-save to original directories>":
+                    out_path = os.path.join(os.path.dirname(video), f"{base_name}_subtitle{fmt}")
+                elif os.path.isdir(save_val):
+                    out_path = os.path.join(save_val, f"{base_name}_subtitle{fmt}")
+                else:
+                    out_path = os.path.join(os.path.dirname(video), f"{base_name}_subtitle{fmt}")
+            else:
+                batch_prefix = ""
+                out_path = save_val
+
+            # Run the heavy backend math
+            main.translate_movie(
+                video_path=video, source_language=lang_code, output_file=out_path,
+                model_size=model_sz, task=task_type, compute_device=compute,
+                vad_filter=vad, output_format=fmt,
+                progress_callback=update_gui_progress, cancel_check=check_cancel
+            )
+
+        # If the queue finished without cancellation
+        if not check_cancel():
+            root.after(0, lambda: status_var.set(f"Successfully processed {total_files} file(s)."))
+            root.after(0, lambda: progress_bar.set(1.0))
+
     except Exception as e:
         update_gui_progress(0, 100, f"Error: {str(e)}")
     finally:
+        batch_prefix = ""
         root.after(0, lambda: start_button.configure(state="normal"))
         root.after(0, lambda: cancel_button.configure(state="disabled"))
 
 
 def start_process():
-    video = video_path_var.get()
-    save = save_path_var.get()
-    if not video or not save:
-        messagebox.showwarning("Missing Information", "Please select a media file and save location.")
+    if not selected_files or not save_path_var.get():
+        messagebox.showwarning("Missing Information", "Please select media files and a save location.")
         return
 
     lang_code = lang_var.get().split("(")[-1].replace(")", "")
@@ -140,9 +206,11 @@ def start_process():
     cancel_button.configure(state="normal")
     progress_bar.set(0)
 
+    # Pass the list of selected files into the thread
     threading.Thread(
         target=run_translation_thread,
-        args=(video, lang_code, save, model_code, task_code, compute_code, vad_var.get(), format_var.get()),
+        args=(selected_files.copy(), lang_code, save_path_var.get(), model_code, task_code, compute_code, vad_var.get(),
+              format_var.get()),
         daemon=True
     ).start()
 
@@ -166,6 +234,7 @@ if __name__ == "__main__":
     format_var = ctk.StringVar(value=".srt")
     compute_var = ctk.StringVar(value=COMPUTE_OPTIONS[0])
     vad_var = ctk.BooleanVar(value=True)  # VAD on by default
+    theme_var = ctk.BooleanVar(value=False)  # Switch for Light/Dark Mode
     status_var = ctk.StringVar(value="Ready")
 
     format_var.trace_add("write", update_extension_in_path)
@@ -179,7 +248,7 @@ if __name__ == "__main__":
     frame.grid_columnconfigure(3, weight=1)
 
     # 0. Media Selection
-    ctk.CTkLabel(frame, text="Media File:", width=100).grid(row=0, column=0, padx=10, pady=(15, 10), sticky="e")
+    ctk.CTkLabel(frame, text="Media File(s):", width=100).grid(row=0, column=0, padx=10, pady=(15, 10), sticky="e")
     video_entry = ctk.CTkEntry(frame, textvariable=video_path_var, width=400)
     video_entry.grid(row=0, column=1, pady=(15, 10))
     video_entry.bind("<Double-1>", browse_video)
@@ -213,9 +282,10 @@ if __name__ == "__main__":
     ctk.CTkLabel(adv_frame, text="Format:").pack(side="left", padx=(0, 5))
     ctk.CTkOptionMenu(adv_frame, variable=format_var, values=FORMATS, width=70).pack(side="left", padx=(0, 15))
     ctk.CTkLabel(adv_frame, text="Compute:").pack(side="left", padx=(0, 5))
-    ctk.CTkOptionMenu(adv_frame, variable=compute_var, values=COMPUTE_OPTIONS, width=160).pack(side="left",
+    ctk.CTkOptionMenu(adv_frame, variable=compute_var, values=COMPUTE_OPTIONS, width=150).pack(side="left",
                                                                                                padx=(0, 15))
-    ctk.CTkSwitch(adv_frame, text="VAD Filter (Ignore Silence)", variable=vad_var).pack(side="left")
+    ctk.CTkSwitch(adv_frame, text="VAD Filter", variable=vad_var).pack(side="left", padx=(0, 15))
+    ctk.CTkSwitch(adv_frame, text="Light UI", variable=theme_var, command=toggle_theme).pack(side="left")
 
     # 5. Status
     status_frame = ctk.CTkFrame(frame, fg_color="transparent")
