@@ -47,12 +47,3 @@ Click Start Processing and monitor the progress.
 
 
 ---
-
-### How to Save This on GitHub
-1. In the GitHub text box shown in your screenshot, type `README.md` into the name field.
-2. Paste the template above into the main editor window.
-3. Scroll down to the **Commit changes...** button in the top right.
-4. Add a short description (e.g., *"Create initial README"*).
-5. Click **Commit directly to the `main` branch**.
-
-***
